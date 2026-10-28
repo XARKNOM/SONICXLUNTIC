@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#080b12">
+<title>CHRONEX — Летопись: Сквозь века</title>
+<style>
+:root{--gold:#d9b45b;--gold2:#80652b;--bg:#080b12;--panel:rgba(8,12,20,.82);--line:rgba(217,180,91,.42)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:#f3eee2;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;touch-action:none}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;background:#111}
+#hud{position:fixed;inset:0;pointer-events:none}
+.top{position:absolute;left:14px;right:14px;top:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.brand{font-weight:900;letter-spacing:.18em;color:var(--gold);font-size:clamp(12px,2.4vw,20px);text-shadow:0 2px 10px #000}
+.sub{font-size:10px;letter-spacing:.16em;color:#c5b994;margin-top:3px}
+.pill{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 11px;font-size:11px;color:#eadbb3;backdrop-filter:blur(8px)}
+#center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:20px;height:20px;opacity:.8}
+#center:before,#center:after{content:"";position:absolute;background:#f1e7ca;box-shadow:0 0 6px #000}
+#center:before{width:16px;height:1px;left:2px;top:9px}#center:after{height:16px;width:1px;left:9px;top:2px}
+#hint{position:absolute;top:66px;left:50%;transform:translateX(-50%);font-size:11px;color:#e5d8b3;background:rgba(0,0,0,.38);padding:6px 10px;border-radius:7px;white-space:nowrap;text-align:center}
+#bottom{position:absolute;bottom:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:end;gap:12px}
+#status{font-size:11px;color:#e8d9b4;background:var(--panel);border:1px solid var(--line);padding:8px 10px;border-radius:9px;max-width:48%}
+#controls{display:flex;gap:8px;pointer-events:auto}
+button{font:inherit;color:#f5e8c7;background:rgba(10,14,22,.8);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:42px}
+button:active{background:#45371c}
+#movePad{position:absolute;left:18px;bottom:86px;width:126px;height:126px;border:1px solid #d9b45b66;border-radius:50%;background:#070b1299;pointer-events:auto;display:none}
+#stick{position:absolute;left:38px;top:38px;width:48px;height:48px;border-radius:50%;background:#d9b45b55;border:1px solid #d9b45b99}
+#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at center,#1c2431 0%,#080b12 70%)}
+.card{width:min(520px,100%);border:1px solid var(--line);background:rgba(8,12,20,.91);padding:clamp(22px,5vw,40px);border-radius:18px;box-shadow:0 20px 70px #0009;text-align:center}
+.logo{font-size:clamp(28px,7vw,50px);font-weight:950;letter-spacing:.2em;color:var(--gold);text-shadow:0 0 25px #b98b3044}
+.kicker{color:#a89c7d;font-size:10px;letter-spacing:.3em;margin:10px 0 24px}
+.card h1{font-size:clamp(18px,4vw,26px);font-weight:600;margin:0 0 10px}
+.card p{font-size:13px;line-height:1.6;color:#c6c2b8;margin:0 0 22px}
+.primary{background:linear-gradient(135deg,#d8b65f,#8e6a29);color:#15120a;border:0;font-weight:900;letter-spacing:.12em;padding:14px 24px;min-width:190px}
+.note{font-size:10px!important;color:#8f8a7b!important;margin:18px 0 0!important}
+#rotate{display:none;position:fixed;inset:0;background:#080b12;z-index:20;align-items:center;justify-content:center;text-align:center;padding:24px}
+body.immersive #hud .top,body.immersive #hud #hint,body.immersive #hud #bottom,body.immersive #hud #movePad{opacity:0;pointer-events:none;transition:opacity .2s}
+body.immersive #hud #center{opacity:.25}
+#restoreUI{display:none;position:fixed;top:10px;right:10px;z-index:8;pointer-events:auto;background:rgba(8,12,20,.45);border:1px solid rgba(217,180,91,.3);color:#e8d9b4;border-radius:8px;padding:7px 10px;font-size:11px}
+body.immersive #restoreUI{display:block}
+@media (orientation:portrait) and (max-width:700px){#rotate{display:flex}#rotate .rotatebox{max-width:300px;color:#d8cba7}#rotate .symbol{font-size:48px;color:var(--gold);margin-bottom:12px}#start{display:none!important}}
+@media (orientation:landscape){#movePad{display:block}}
+@media (max-height:420px){.top{top:7px}.pill{padding:5px 8px}#bottom{bottom:7px}#hint{top:47px}.card{padding:18px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<button id="restoreUI" aria-label="Показать интерфейс">Показать UI</button>
+<div id="hud" style="display:none">
+ <div class="top"><div><div class="brand">CHRONEX</div><div class="sub">ЛЕТОПИСЬ: СКВОЗЬ ВЕКА</div></div><div class="pill" id="coord">ЭПОХА I · 00:00</div></div>
+ <div id="hint">ПЕРЕМЕЩЕНИЕ: джойстик · ОБЗОР: веди пальцем по правой части экрана</div>
+ <div id="center"></div>
+ <div id="movePad"><div id="stick"></div></div>
+ <div id="bottom"><div id="status">ЗАДАЧА: исследуй руины и найди проход</div><div id="controls"><button id="full">⛶</button><button id="pause">Ⅱ</button></div></div>
+</div>
+<div id="start">
+ <div class="card">
+  <div class="logo">CHRONEX</div><div class="kicker">ЛЕТОПИСЬ: СКВОЗЬ ВЕКА</div>
+  <h1>ВХОД В ЛЕТОПИСЬ</h1>
+  <p>Прототип от первого лица с перспективой, движением и обзором. Игра рассчитана на горизонтальный экран.</p>
+  <button class="primary" id="begin">НАЧАТЬ ИССЛЕДОВАНИЕ</button>
+  <p class="note">Это начальный игровой прототип: исследование карты работает, сюжетные задания и сетевой режим ещё не подключены.</p>
+ </div>
+</div>
+<div id="rotate"><div class="rotatebox"><div class="symbol">▱ ↻</div><b>ПОВЕРНИ ТЕЛЕФОН ГОРИЗОНТАЛЬНО</b><p>CHRONEX рассчитана на альбомный режим.</p></div></div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const start=document.getElementById('start'),hud=document.getElementById('hud');
+const map=[
+"1111111111111111",
+"1000000000000001",
+"1011100010111001",
+"1000100000100001",
+"1000101110101101",
+"1000001000000001",
+"1011001001110001",
+"1000000000010001",
+"1001110111010001",
+"1000000100000001",
+"1011100101111001",
+"1000000000000001",
+"1111111111111111"
+];
+let W=0,H=0,player={x:2.5,y:2.5,a:0.15},running=false,paused=false,walk=0,started=0;
+const FOV=Math.PI/2.8;
+function resize(){W=canvas.width=innerWidth*devicePixelRatio;H=canvas.height=innerHeight*devicePixelRatio;canvas.style.width=innerWidth+'px';canvas.style.height=innerHeight+'px'}
+addEventListener('resize',resize);resize();
+function wall(x,y){return y<0||y>=map.length||x<0||x>=map[0].length||map[y][x]==='1'}
+function cast(angle){let step=.025,dist=0,x,y;while(dist<22){dist+=step;x=player.x+Math.cos(angle)*dist;y=player.y+Math.sin(angle)*dist;if(wall(Math.floor(x),Math.floor(y)))break}return {dist,x,y}}
+function render(){
+ if(!W||!H)return;
+ const horizon=H*.48;
+ let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#111a29');sky.addColorStop(1,'#55504a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
+ let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#35312a');floor.addColorStop(1,'#090b10');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
+ // distant haze and horizon silhouettes
+ ctx.fillStyle='#242b31';ctx.beginPath();ctx.moveTo(0,horizon);for(let x=0;x<=W;x+=W/18){ctx.lineTo(x,horizon-(Math.sin(x*.014)*.018+Math.cos(x*.006)*.02)*H)}ctx.lineTo(W,horizon);ctx.fill();
+ const cols=Math.max(160,Math.floor(W/2));const cw=W/cols;
+ for(let i=0;i<cols;i++){
+  const cam=(i/cols-.5)*FOV,hit=cast(player.a+cam),correct=hit.dist*Math.cos(cam);
+  const wh=Math.min(H*1.6,H*.78/(correct+.05)),top=horizon-wh/2;
+  let shade=Math.max(20,175-correct*13);const side=(Math.abs(hit.x-Math.round(hit.x))<.04||Math.abs(hit.y-Math.round(hit.y))<.04)?.7:1;
+  const texture=(Math.floor(hit.x*3+hit.y*5)%4===0)?1.0:.84;
+  const r=Math.floor(shade*.88*side*texture),g=Math.floor(shade*.75*side*texture),b=Math.floor(shade*.53*side*texture);
+  ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillRect(i*cw,top,cw+1,wh);
+  if(wh>18){ctx.fillStyle='rgba(10,10,12,.3)';for(let yy=top+wh*.25;yy<top+wh;yy+=wh*.25)ctx.fillRect(i*cw,yy,cw+1,1);if(i%7===0){ctx.fillStyle='rgba(225,185,89,.13)';ctx.fillRect(i*cw,top+wh*.18,cw+1,wh*.035)}}
+ }
+ // floor perspective lines
+ ctx.strokeStyle='rgba(213,181,111,.12)';ctx.lineWidth=devicePixelRatio;
+ for(let i=1;i<9;i++){let y=horizon+(H-horizon)*(i/9)*(i/9);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ // subtle vignette
+ const vg=ctx.createRadialGradient(W/2,H/2,H*.1,W/2,H/2,H*.75);vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,.55)');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+ if(running&&!paused){walk+=.035;requestAnimationFrame(render)}
+}
+function draw(){render()}
+function move(forward,strafe){let nx=player.x+Math.cos(player.a)*forward-Math.sin(player.a)*strafe,ny=player.y+Math.sin(player.a)*forward+Math.cos(player.a)*strafe;if(!wall(Math.floor(nx+.18),Math.floor(player.y)))player.x=nx;if(!wall(Math.floor(player.x),Math.floor(ny+.18)))player.y=ny}
+function loop(){if(running&&!paused){if(keys.w||keys.ArrowUp)move(.055,0);if(keys.s||keys.ArrowDown)move(-.055,0);if(keys.a)move(0,-.05);if(keys.d)move(0,.05);if(keys.ArrowLeft)player.a-=.035;if(keys.ArrowRight)player.a+=.035;document.getElementById('coord').textContent='ЭПОХА I · '+String(Math.floor((Date.now()-started)/60000)).padStart(2,'0')+':'+String(Math.floor((Date.now()-started)/1000)%60).padStart(2,'0');render()}requestAnimationFrame(loop)}
+const keys={};addEventListener('keydown',e=>{keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault()});addEventListener('keyup',e=>keys[e.key]=false);
+let lookId=null,lastX=0;
+canvas.addEventListener('pointerdown',e=>{if(!running||paused)return;if(e.clientX>innerWidth*.4){lookId=e.pointerId;lastX=e.clientX;canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener('pointermove',e=>{if(lookId===e.pointerId){player.a+=(e.clientX-lastX)*.006;lastX=e.clientX}});
+canvas.addEventListener('pointerup',e=>{if(lookId===e.pointerId)lookId=null});
+const pad=document.getElementById('movePad'),stick=document.getElementById('stick');let padOn=false,padCenter={x:0,y:0},joy={x:0,y:0};
+function joyStart(e){e.preventDefault();padOn=true;let r=pad.getBoundingClientRect();padCenter={x:r.left+r.width/2,y:r.top+r.height/2};joyMove(e)}
+function joyMove(e){if(!padOn)return;let dx=e.clientX-padCenter.x,dy=e.clientY-padCenter.y,l=Math.hypot(dx,dy),max=42;if(l>max){dx=dx/l*max;dy=dy/l*max}joy={x:dx/max,y:dy/max};stick.style.transform=`translate(${dx}px,${dy}px)`}
+function joyEnd(){padOn=false;joy={x:0,y:0};stick.style.transform='translate(0,0)'}
+pad.addEventListener('pointerdown',e=>{pad.setPointerCapture(e.pointerId);joyStart(e)});pad.addEventListener('pointermove',joyMove);pad.addEventListener('pointerup',joyEnd);pad.addEventListener('pointercancel',joyEnd);
+const oldLoop=loop;
+function mobileLoop(){if(running&&!paused&&padOn){move(-joy.y*.07,joy.x*.065)}requestAnimationFrame(mobileLoop)}
+document.getElementById('begin').onclick=()=>{start.style.display='none';hud.style.display='block';running=true;paused=false;started=Date.now();try{if(innerWidth<innerHeight)screen.orientation?.lock?.('landscape').catch(()=>{})}catch(e){};render();};
+document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'▶':'Ⅱ';document.getElementById('status').textContent=paused?'ПАУЗА':'ЗАДАЧА: исследуй руины и найди проход';if(!paused)render()};
+document.getElementById('full').onclick=()=>{
+  document.body.classList.toggle('immersive');
+  const immersive=document.body.classList.contains('immersive');
+  document.getElementById('full').textContent=immersive?'◉':'⛶';
+  if(!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>{});
+};
+document.getElementById('restoreUI').onclick=()=>{
+  document.body.classList.remove('immersive');
+  document.getElementById('full').textContent='⛶';
+};
+requestAnimationFrame(loop);requestAnimationFrame(mobileLoop);
+})();
+</script>
+</body></html>
